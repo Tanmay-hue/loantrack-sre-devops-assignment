@@ -1,0 +1,54 @@
+LoanTrack - Health and Readiness Test
+=====================================
+
+Test 1 - Database available
+---------------------------
+
+Command:
+curl -i http://127.0.0.1:8000/healthz
+
+Output:
+{"status":"ok","service":"loantrack-api"}
+
+Command:
+curl -i http://127.0.0.1:8000/readyz
+
+Output:
+HTTP/1.1 200 OK
+date: Mon, 14 Sep 2026 14:27:17 GMT
+server: uvicorn
+content-length: 41
+content-type: application/json
+
+{"status":"ready","database":"reachable"}
+
+Test 2 - Database unavailable
+-----------------------------
+
+PostgreSQL was stopped while the backend process remained running.
+
+Command:
+curl -i http://127.0.0.1:8000/healthz
+
+Output:
+{"status":"ok","service":"loantrack-api"}
+
+
+Command:
+curl -i http://127.0.0.1:8000/readyz
+
+Output:
+HTTP/1.1 503 Service Unavailable
+date: Mon, 14 Sep 2026 14:25:20 GMT
+server: uvicorn
+content-length: 34
+content-type: application/json
+
+{"detail":"database is not ready"}
+
+Observation
+-----------
+/healthz checks the backend process and does not depend on PostgreSQL.
+
+/readyz checks database connectivity and returns an error when PostgreSQL
+is unavailable.
