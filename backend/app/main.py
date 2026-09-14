@@ -1,4 +1,3 @@
-import os
 import socket
 from contextlib import asynccontextmanager
 
@@ -7,7 +6,7 @@ from fastapi import FastAPI, HTTPException, status
 from .database import (
     check_database_connection,
     close_pool,
-    open_pool,
+    open_pool_with_retry,
     pool,
 )
 from .schemas import LoanCreate, LoanResponse
@@ -15,7 +14,7 @@ from .schemas import LoanCreate, LoanResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    open_pool()
+    open_pool_with_retry()
 
     yield
 
