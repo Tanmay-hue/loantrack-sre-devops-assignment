@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,6 +20,11 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_MIN_CONNECTIONS = int(os.getenv("DB_MIN_CONNECTIONS", "2"))
 DB_MAX_CONNECTIONS = int(os.getenv("DB_MAX_CONNECTIONS", "10"))
 
+DB_STARTUP_RETRIES = int(os.getenv("DB_STARTUP_RETRIES", "10"))
+DB_STARTUP_RETRY_DELAY = float(
+    os.getenv("DB_STARTUP_RETRY_DELAY", "2")
+)
+
 
 if not DB_PASSWORD:
     raise RuntimeError("DB_PASSWORD is not configured")
@@ -38,9 +44,58 @@ pool = ConnectionPool(
 )
 
 
-def open_pool() -> None:
-    """Open the PostgreSQL connection pool."""
-    pool.open()
+def open_pool_with_retry() -> None:
+    """
+    Open the PostgreSQL connection pool with startup retries.
+
+    The backend waits for PostgreSQL instead of immediately failing
+    when the database is temporarily unavailable.
+    """
+
+    for attempt in range(1, DB_STARTUP_RETRIES + 1):
+        try:
+            print(
+                f"Database connection attempt "
+                f"{attempt}/{DB_STARTUP_RETRIES}"
+            )
+
+            pool.open(wait=True)
+
+            with pool.connection() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                    cursor.fetchone()
+
+            print("Database connection established.")
+
+            return
+
+        except Exception as exc:
+            print(
+                f"Database connection attempt {attempt} failed: "
+                f"{exc}"
+            )
+
+            if attempt == DB_STARTUP_RETRIES:
+                print(
+                    "Database connection could not be established "
+                    "after all startup attempts."
+                )
+                raise
+
+            delay = DB_STARTUP_RETRY_DELAY * attempt
+
+            print(
+                f"Retrying database connection in "
+                f"{delay:.1f} seconds..."
+            )
+
+            try:
+                pool.close()
+            except Exception:
+                pass
+
+            time.sleep(delay)
 
 
 def close_pool() -> None:
@@ -49,7 +104,12 @@ def close_pool() -> None:
 
 
 def check_database_connection() -> bool:
-    """Return True when PostgreSQL is reachable."""
+    """
+    Check whether PostgreSQL is currently reachable.
+
+    This function is used by /readyz.
+    """
+
     try:
         with pool.connection() as connection:
             with connection.cursor() as cursor:
