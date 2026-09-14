@@ -1,0 +1,43 @@
+LoanTrack - Database Startup Retry Test
+=======================================
+
+Test objective
+--------------
+Verify that the backend retries PostgreSQL connections when the database is
+temporarily unavailable and successfully starts after PostgreSQL becomes
+available.
+
+Initial condition
+-----------------
+PostgreSQL was stopped before starting the backend.
+
+Backend command
+---------------
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Observed output
+---------------
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+INFO: Will watch for changes in these directories: ['C:\\Users\\JAGVEER\\Desktop\\loantrack\\backend']
+INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO: Started reloader process [7596] using WatchFiles
+INFO: Started server process [12608]
+INFO: Waiting for application startup.
+Database connection attempt 1/10
+error connecting in 'pool-1': connection failed: connection to server at "127.0.0.1", port 5432 failed: could not receive data from server: Socket is not connected (0x00002749/10057)
+could not send SSL negotiation packet: Socket is not connected (0x00002749/10057)
+error connecting in 'pool-1': connection failed: connection to server at "127.0.0.1", port 5432 failed: could not receive data from server: Socket is not connected (0x00002749/10057)
+could not send SSL negotiation packet: Socket is not connected (0x00002749/10057)
+
+Recovery
+--------
+PostgreSQL was started again while the backend was retrying.
+
+error connecting in 'pool-1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL: the database system is starting up
+Database connection established.
+INFO: Application startup complete.
+
+Result
+------
+The backend successfully established a database connection after PostgreSQL
+became available.
