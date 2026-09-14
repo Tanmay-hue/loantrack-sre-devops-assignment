@@ -43,3 +43,15 @@ The API exposes two separate endpoints:
 
 This separation is important for the later Kubernetes deployment because
 liveness and readiness probes have different purposes.
+
+## Startup behavior
+
+If PostgreSQL is temporarily unavailable during backend startup, the backend
+does not immediately terminate. It retries the connection using the configured
+startup retry count and delay.
+
+The retry settings are controlled through:
+
+```text
+DB_STARTUP_RETRIES
+DB_STARTUP_RETRY_DELAY
